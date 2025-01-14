@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\TestMail;
 use App\Models\Book;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 class BorrowingController extends Controller
 {
@@ -15,6 +17,14 @@ class BorrowingController extends Controller
 
             // Find the book
             $book = Book::findOrFail($request['book_id']);
+
+
+            if ($book->available_quantity == 0) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'This book is not available.'
+                ], 400);
+            }
 
             // Check if the user already borrowed the book
             if ($user->books()->where('book_id', $book->id)->exists()) {
@@ -31,10 +41,14 @@ class BorrowingController extends Controller
 
             // Update the book quantities
             $book->update([
-                'is_active' => $book->available_quantity == 1 ? false : true ,
+                'is_active' => $book->available_quantity == 1 ? false : true,
                 'available_quantity' => $book->available_quantity - 1,
                 'borrowed_quantity' => $book->borrowed_quantity + 1,
             ]);
+
+
+            Mail::to($user->email)->send(new TestMail($book->title, $book->genre->name, $book->isbn, $user->name));
+
 
             return response()->json([
                 'status' => 'success',
