@@ -10,6 +10,7 @@ class Book extends Model
     use HasFactory;
 
     protected $guarded = [];
+
     public function genre()
     {
         return $this->belongsTo(Genre::class);
@@ -18,5 +19,10 @@ class Book extends Model
     public function users()
     {
         return $this->belongsToMany(User::class)->withPivot('borrowed_at', 'due_date');
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
     }
 }
