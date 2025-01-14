@@ -12,6 +12,8 @@ class BorrowingController extends Controller
 {
     public function borrow(Request $request)
     {
+        DB::beginTransaction();
+
         try {
             $user = auth()->user();
 
@@ -50,6 +52,8 @@ class BorrowingController extends Controller
             Mail::to($user->email)->send(new TestMail($book->title, $book->genre->name, $book->isbn, $user->name));
 
 
+            DB::commit();
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Book borrowed successfully'
@@ -62,6 +66,8 @@ class BorrowingController extends Controller
 
     public function backup(Request $request)
     {
+        DB::beginTransaction();
+
         try {
             $user = auth()->user();
 
@@ -86,6 +92,8 @@ class BorrowingController extends Controller
                 'available_quantity' => $book->available_quantity + 1,
                 'borrowed_quantity' => $book->borrowed_quantity - 1,
             ]);
+
+            DB::commit();
 
             return response()->json([
                 'status' => 'success',
