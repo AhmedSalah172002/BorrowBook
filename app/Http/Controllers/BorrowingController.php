@@ -90,7 +90,7 @@ class BorrowingController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Book returned successfully'
-            ], 200);
+            ], 201);
 
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
