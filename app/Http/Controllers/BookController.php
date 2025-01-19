@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\BookStoreRequest;
+use App\Http\Requests\BookUpdateRequest;
 use App\Models\Book;
-use Illuminate\Http\Request;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 
 class BookController extends Controller
 {
@@ -13,12 +14,18 @@ class BookController extends Controller
      */
     public function index()
     {
-        $books = Book::all();
+        return $this->successResponse(Book::all());
+    }
 
+    /**
+     * Standardized success response.
+     */
+    private function successResponse($data, $statusCode = 200)
+    {
         return response()->json([
-            "status" => "success",
-            'data' => $books,
-        ],200);
+            'status' => 'success',
+            'data' => $data,
+        ], $statusCode);
     }
 
     /**
@@ -26,64 +33,62 @@ class BookController extends Controller
      */
     public function store(BookStoreRequest $request)
     {
-        try {
-
+        return $this->handleRequest(function () use ($request) {
             $validated = $request->validated();
-
-            // Create a new book
+            $validated['cover_image'] = $this->uploadImage($validated['cover_image']);
             $book = Book::create($validated);
+            return $this->successResponse($book, 201);
+        });
+    }
 
-            return response()->json([
-                "status" => "success",
-                'data' => $book,
-            ],201);
-        }catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
+    /**
+     * Handle repetitive request handling logic.
+     */
+    private function handleRequest(callable $callback)
+    {
+        try {
+            return $callback();
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Display the specified resource.
+     * Upload image to Cloudinary.
      */
-    public function show($id)
+    private function uploadImage($image, $oldImage = null)
     {
-        try {
-            $book = Book::findOrFail($id);
+        if (is_string($image)) {
+            return $image;
+        }
 
-            return response()->json([
-                'status' => 'success',
-                'data' => $book,
-            ],200);
-        }catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
+        if ($oldImage) {
+            $this->deleteOldImage($oldImage);
+        }
+
+        return Cloudinary::upload($image->getRealPath(), [
+            'folder' => "books/" . date("Y") . "/" . date("M"),
+        ])->getSecurePath();
+    }
+
+    /**
+     * Delete the old image from Cloudinary.
+     */
+    private function deleteOldImage($oldImage)
+    {
+        $publicId = $this->getPublicIdFromUrl($oldImage);
+        if ($publicId) {
+            Cloudinary::destroy($publicId);
         }
     }
 
     /**
-     * Update the specified resource in storage.
+     * Extract public ID from Cloudinary URL.
      */
-    public function update(BookStoreRequest $request, $id)
+    private function getPublicIdFromUrl(string $url): ?string
     {
-        try {
-            $validated = $request->validated();
-
-            $book = Book::findOrFail($id);
-
-            if ($book) {
-                $book->update($validated);
-                return response()->json([
-                    'status' => 'success',
-                    'data' => $book,
-                ],200);
-            }
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Book not found',
-            ]);
-        }catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
-        }
+        $parts = explode('/', $url);
+        return explode('.', join('/', array_slice($parts, 7)))[0];
     }
 
     /**
@@ -91,15 +96,35 @@ class BookController extends Controller
      */
     public function destroy($id)
     {
-        try {
+        return $this->handleRequest(function () use ($id) {
             $book = Book::findOrFail($id);
             $book->delete();
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Book deleted successfully' ,
-            ],200);
-        }catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
-        }
+            return $this->successResponse(['message' => 'Book deleted successfully']);
+        });
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show($id)
+    {
+        return $this->handleRequest(function () use ($id) {
+            $book = Book::findOrFail($id);
+            return $this->successResponse($book);
+        });
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(BookUpdateRequest $request, $id)
+    {
+        return $this->handleRequest(function () use ($request, $id) {
+            $validated = $request->validated();
+            $book = Book::findOrFail($id);
+            $validated['cover_image'] = $this->uploadImage($validated['cover_image'], $book->cover_image);
+            $book->update($validated);
+            return $this->successResponse($book);
+        });
     }
 }
