@@ -1,66 +1,126 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Library Management API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This API provides the functionality for managing users, books, borrowing, and reviews in a library system. The routes
+cover user authentication, book borrowing, returning, and reviews management.
 
-## About Laravel
+## API Endpoints
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Public Routes
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **POST `/register`**  
+  Registers a new user.  
+  **Request Body**:
+    - `name`: User's full name
+    - `email`: User's email address
+    - `password`: User's password
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+  **Response**:
+    - `status`: Success or error message
+    - `data`: User information
 
-## Learning Laravel
+- **POST `/login`**  
+  Logs in an existing user and returns a token for authentication.  
+  **Request Body**:
+    - `email`: User's email address
+    - `password`: User's password
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+  **Response**:
+    - `status`: Success or error message
+    - `token`: JWT token for authentication
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Authenticated Routes
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+These routes require an API token for authentication. Add the token in the `Authorization` header with the prefix
+`Bearer`.
 
-## Laravel Sponsors
+- **GET `/profile`**  
+  Returns the authenticated user's profile information.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- **POST `/logout`**  
+  Logs out the user and invalidates the token.
 
-### Premium Partners
+- **POST `/borrow`**  
+  Allows a user to borrow a book.  
+  **Request Body**:
+    - `book_id`: ID of the book to borrow
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+  **Response**:
+    - `status`: Success message
 
-## Contributing
+- **POST `/return`**  
+  Allows a user to return a borrowed book.  
+  **Request Body**:
+    - `book_id`: ID of the book to return
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+  **Response**:
+    - `status`: Success message
 
-## Code of Conduct
+- **GET `/my-books`**  
+  Lists all books borrowed by the authenticated user.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **CRUD Routes for Reviews**
+    - **GET `/reviews`**: List all reviews
+    - **POST `/reviews`**: Create a new review
+    - **GET `/reviews/{id}`**: Show a specific review
+    - **PUT `/reviews/{id}`**: Update an existing review
+    - **DELETE `/reviews/{id}`**: Delete a review
 
-## Security Vulnerabilities
+  These routes are managed by the `ReviewController`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Admin Routes (Role-based Access)
 
-## License
+These routes are restricted to users with the required role, and they handle book and genre management.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- **CRUD Routes for Genres**
+    - **GET `/genres`**: List all genres
+    - **POST `/genres`**: Create a new genre
+    - **GET `/genres/{id}`**: Show a specific genre
+    - **PUT `/genres/{id}`**: Update an existing genre
+    - **DELETE `/genres/{id}`**: Delete a genre
+
+- **CRUD Routes for Books**
+    - **GET `/books`**: List all books
+    - **POST `/books`**: Create a new book
+    - **GET `/books/{id}`**: Show a specific book
+    - **PUT `/books/{id}`**: Update an existing book
+    - **DELETE `/books/{id}`**: Delete a book
+
+  The `books` routes also use the `RandomIsbnGenerator` middleware to generate a random ISBN for new books.
+
+- **GET `/analytics`**  
+  Provides analytics on the books borrowed, such as most borrowed books and overall borrow statistics.
+
+- **GET `/admin/reviews`**  
+  Returns a list of reviews for admin users.
+
+### Middleware
+
+- **auth:api**: Ensures that the user is authenticated and has a valid token.
+- **AuthRoleBased**: Restricts access to routes based on the user's role (e.g., admin).
+- **RandomIsbnGenerator**: Automatically generates a random ISBN when creating a new book.
+
+## Usage
+
+1. **Register a new user:**
+   Send a `POST` request to `/register` with the necessary user details.
+
+2. **Login and get token:**
+   Send a `POST` request to `/login` with email and password to get a token.
+
+3. **Borrow a book:**
+   Send a `POST` request to `/borrow` with the `book_id` to borrow a book.
+
+4. **Return a book:**
+   Send a `POST` request to `/return` with the `book_id` to return a borrowed book.
+
+5. **CRUD operations on reviews** (Authenticated users only).
+
+6. **Admin routes** are restricted to users with an admin role and provide management for books, genres, and analytics.
+
+## Authentication
+
+All routes except `/register` and `/login` require a valid API token. The token should be included in the
+`Authorization` header with the `Bearer` prefix.
+
+```bash
+Authorization: Bearer <your-api-token>
