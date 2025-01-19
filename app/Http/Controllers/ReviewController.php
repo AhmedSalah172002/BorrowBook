@@ -2,164 +2,74 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Book;
+use App\Http\Requests\ReviewStoreRequest;
 use App\Models\Review;
-use Illuminate\Http\Request;
+use App\Services\RatingService;
 
 class ReviewController extends Controller
 {
-
-
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        try {
-
+        return $this->handleRequest(function () {
             $user = auth()->user();
-
             $reviews = Review::where('user_id', $user->id)->get();
-
-            return response()->json([
-                'status' => 'success',
-                'data' => $reviews,
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
-        }
+            return $this->successResponse($reviews);
+        });
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(ReviewStoreRequest $request, RatingService $ratingService)
     {
-        try {
+        return $this->handleRequest(function () use ($request, $ratingService) {
             $user = auth()->user();
-
-            $validated = $request->validate([
-                'book_id' => 'required|integer|exists:books,id',
-                'rating' => 'required|numeric|between:0,5',
-                'comment' => 'required|string|max:1000',
-            ]);
+            $validated = $request->validated();
             $validated['user_id'] = $user->id;
             $existReview = Review::where('user_id', $user->id)
                 ->where('book_id', $validated['book_id'])
                 ->first();
             if ($existReview) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'You have already reviewed this book.'
-                ]);
+                return $this->errorResponse('You have already reviewed this book.');
             }
-
             $reviews = Review::create($validated);
+            $ratingService->avg($validated['book_id']);
 
-            $this->avgRating($validated['book_id']);
+            return $this->successResponse($reviews);
+        });
 
-
-            return response()->json([
-                'status' => 'success',
-                'data' => $reviews,
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
-        }
     }
 
-    public function avgRating($bookId)
+    public function update(ReviewStoreRequest $request, $id, RatingService $ratingService)
     {
-        $book = Book::findOrFail($bookId);
-
-        $reviewsStats = Review::where('book_id', $bookId)
-            ->selectRaw('count(*) as count, sum(rating) as sum')
-            ->first();
-
-        if ($reviewsStats->count > 0) {
-            $averageRating = $reviewsStats->sum / $reviewsStats->count;
-            $averageRating = round($averageRating, 2);
-        } else {
-            $averageRating = 0;
-        }
-
-        $book->update([
-            'average_rating' => $averageRating
-        ]);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, $id)
-    {
-        try {
-            $validated = $request->validate([
-                'book_id' => 'required|integer|exists:books,id',
-                'rating' => 'required|numeric|between:0,5',
-                'comment' => 'required|string|max:1000',
-            ]);
+        return $this->handleRequest(function () use ($request, $id, $ratingService) {
             $user = auth()->user();
+            $validated = $request->validated();
             $review = Review::where('user_id', $user->id)->findOrFail($id);
             $review->update($validated);
-
-            $this->avgRating($validated['book_id']);
-
-            return response()->json([
-                'status' => 'success',
-                'data' => $review,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
-        }
+            $ratingService->avg($validated['book_id']);
+            return $this->successResponse($review);
+        });
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show($id)
     {
-        try {
+        return $this->handleRequest(function () use ($id) {
             $user = auth()->user();
             $review = Review::where('user_id', $user->id)->findOrFail($id);
-            return response()->json([
-                'status' => 'success',
-                'data' => $review,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
-        }
+            return $this->successResponse($review);
+        });
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy($id)
     {
-        try {
+        return $this->handleRequest(function () use ($id) {
             $user = auth()->user();
             $review = Review::where('user_id', $user->id)->findOrFail($id);
             $review->delete();
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Review deleted successfully',
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
-        }
+            return $this->successResponse(['message' => 'Review deleted successfully']);
+        });
     }
-
 
     public function adminReview()
     {
-        try {
-            $reviews = Review::all();
-            return response()->json([
-                'status' => 'success',
-                'data' => $reviews,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()]);
-        }
+        return $this->successResponse(Review::all());
     }
 }
