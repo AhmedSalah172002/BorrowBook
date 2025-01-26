@@ -20,5 +20,6 @@ Route::middleware(\App\Http\Middleware\AuthRoleBased::class)->group(function () 
         ->middleware(\App\Http\Middleware\RandomIsbnGenerator::class)->names('api.books');
     Route::get('/analytics', [\App\Http\Controllers\BorrowingController::class, 'analyticsBooksBorrowed']);
     Route::get('admin/reviews', [\App\Http\Controllers\ReviewController::class, 'adminReview']);
+    Route::get('admin/borrowings/last-7-months', [\App\Http\Controllers\BorrowingController::class, 'getBorrowedBookInLast7Months']);
 });
 

@@ -44,10 +44,19 @@ class BorrowingController extends Controller
         });
     }
 
+    public function getBorrowedBookInLast7Months(BookService $bookService)
+    {
+        return $this->handleRequest(function () use ($bookService) {
+            return $bookService->BorrowedBookInLast7Months();
+        });
+
+    }
+
     public function borrowedBooks()
     {
-        $user = auth()->user();
-        return $this->successResponse($user->books()->get());
+        $books = Book::all();
+        $borrowedBooks = $books->borrowed();
+        return $this->successResponse($borrowedBooks);
     }
 
 }

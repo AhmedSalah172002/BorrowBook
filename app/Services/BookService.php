@@ -55,4 +55,23 @@ class BookService extends Controller
             ->get();
         return $this->successResponse(['total_borrowed_books' => $totalBooksBorrowed, 'borrowed_books' => $borrowedBooks]);
     }
+
+    public function BorrowedBookInLast7Months()
+    {
+        return $this->handleRequest(function () {
+            $last7monthsTimestamp = collect(range(1, 7))->map(fn($i) => now('UTC')->subMonths($i)->format('Y-m'));
+            $borrowedBooks = [];
+            foreach ($last7monthsTimestamp as $month) {
+                $monthName = \Carbon\Carbon::parse($month . '-01')->format('M');
+                $booksCount = DB::table('book_user')
+                    ->whereRaw('DATE_FORMAT(borrowed_at, "%Y-%m") = ?', [$month])
+                    ->count();
+                $borrowedBooks[] = [
+                    "month" => $monthName,
+                    "books" => $booksCount,
+                ];
+            }
+            return $this->successResponse($borrowedBooks);
+        });
+    }
 }

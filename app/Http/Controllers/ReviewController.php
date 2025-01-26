@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ReviewStoreRequest;
 use App\Models\Review;
 use App\Services\RatingService;
+use App\Services\ReviewService;
 
 class ReviewController extends Controller
 {
@@ -17,17 +18,15 @@ class ReviewController extends Controller
         });
     }
 
-    public function store(ReviewStoreRequest $request, RatingService $ratingService)
+    public function store(ReviewStoreRequest $request, RatingService $ratingService, ReviewService $reviewService)
     {
-        return $this->handleRequest(function () use ($request, $ratingService) {
+        return $this->handleRequest(function () use ($request, $ratingService, $reviewService) {
             $user = auth()->user();
             $validated = $request->validated();
             $validated['user_id'] = $user->id;
-            $existReview = Review::where('user_id', $user->id)
-                ->where('book_id', $validated['book_id'])
-                ->first();
+            $existReview = $reviewService->isReviewd($validated['book_id'], $user->id);
             if ($existReview) {
-                return $this->errorResponse('You have already reviewed this book.');
+                return $this->errorResponse('You have already reviewed this book.', 400);
             }
             $reviews = Review::create($validated);
             $ratingService->avg($validated['book_id']);
