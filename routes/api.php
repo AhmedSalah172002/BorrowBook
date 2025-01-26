@@ -21,3 +21,4 @@ Route::middleware(\App\Http\Middleware\AuthRoleBased::class)->group(function () 
     Route::get('/analytics', [\App\Http\Controllers\BorrowingController::class, 'analyticsBooksBorrowed']);
     Route::get('admin/reviews', [\App\Http\Controllers\ReviewController::class, 'adminReview']);
 });
+

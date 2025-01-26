@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Mail\TestMail;
+use App\Jobs\BorrowBook;
 use App\Models\Book;
 use App\Services\BookService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 
 class BorrowingController extends Controller
 {
@@ -19,7 +18,7 @@ class BorrowingController extends Controller
             $user = auth()->user();
             $book = Book::findOrFail($request['book_id']);
             $bookService->borrow($book, $user);
-            Mail::to($user->email)->send(new TestMail($book->title, $book->genre->name, $book->isbn, $user->name));
+            BorrowBook::dispatch($user, $book);
             DB::commit();
             return $this->successResponse(['message' => 'Book borrowed successfully'], 201);
         });
